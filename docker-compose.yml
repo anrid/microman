@@ -1,9 +1,17 @@
 version: '3.3'
 
 services:
+  redis:
+    image: redis:3.2.9
+    hostname: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - network
+
   rabbitmq:
     image: rabbitmq:3.6.10
-    hostname: my-rabbit
+    hostname: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -37,12 +45,15 @@ services:
       - network
 
 volumes:
-  elastic-data:
-    external:
-      name: elastic-volume
   mongo-data:
     external:
       name: mongo-volume
+  elastic-data:
+    external:
+      name: elastic-volume
+  redis-data:
+    external:
+      name: redis-volume
 
 networks:
   network:

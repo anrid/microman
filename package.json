@@ -1,7 +1,16 @@
 {
+  "name": "microman",
+  "version": "0.5.0",
+  "author": "Anri Digholm",
+  "license": "MIT",
   "dependencies": {
     "amqplib": "^0.5.1",
     "bluebird": "^3.5.0",
+    "concurrently": "^3.5.0",
+    "minimist": "^1.2.0",
     "uws": "^8.14.0"
+  },
+  "scripts": {
+    "consume": "concurrently './lib/cli.js consume 1' './lib/cli.js consume 2' './lib/cli.js consume 3' './lib/cli.js consume 4'"
   }
 }
