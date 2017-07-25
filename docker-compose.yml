@@ -1,0 +1,48 @@
+version: '3.3'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.6.10
+    hostname: my-rabbit
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - network
+
+  mongo:
+    image: mongo:3.4.6
+    hostname: mongo
+    ports:
+      - "27017:27017"
+    entrypoint: /entrypoint.sh mongod --storageEngine wiredTiger
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - network
+
+  elastic:
+    image: elasticsearch:5.4.3-alpine
+    hostname: elastic
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      - cluster.name=elastic-cluster
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+    networks:
+      - network
+
+volumes:
+  elastic-data:
+    external:
+      name: elastic-volume
+  mongo-data:
+    external:
+      name: mongo-volume
+
+networks:
+  network:
