@@ -1,14 +1,18 @@
 'use strict'
 
 const log = require('./logger')('throttle')
-const { get1MinLoadAverage } = require('./cpu')
+const { getOneMinuteLoadAverage } = require('./cpu')
 
 const THROTTLE_PERIOD = 1000
 const THROTTLE_API_CALLS_PER_SOCKET = 5
 const THROTTLE_API_CALLS_TOTAL = 20
 
 const _stats = {
-  throttle: { }
+  throttle: { },
+  last: {
+    line: null,
+    count: 0
+  }
 }
 
 const t = _stats.throttle
@@ -26,8 +30,11 @@ function _printStats () {
   if (t.total) {
     const cps = t.total.count / (THROTTLE_PERIOD / 1000)
     if (cps) {
-      const cpu = get1MinLoadAverage()
-      log(`${cps.toFixed(2)} calls / sec, cpu=${cpu.toFixed(2)}`)
+      const cpu = getOneMinuteLoadAverage()
+      const line = `${cps.toFixed(2)} calls / sec, cpu=${cpu.toFixed(2)}`
+      if (_stats.last.line !== line && t.total.count !== _stats.last.count) log(line)
+      _stats.last.line = line
+      _stats.last.count = t.total.count
     }
   }
 }

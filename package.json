@@ -17,7 +17,11 @@
     "uuid": "^3.1.0",
     "uws": "^8.14.0"
   },
+  "devDependencies": {
+    "nodemon": "^1.11.0"
+  },
   "scripts": {
-    "consume": "concurrently './lib/cli.js consume 1' './lib/cli.js consume 2' './lib/cli.js consume 3' './lib/cli.js consume 4'"
+    "consume": "concurrently './src/cli.js consume 1' './src/cli.js consume 2' './src/cli.js consume 3' './src/cli.js consume 4'",
+    "workers": "concurrently 'node ./src/examples/api-worker.js'"
   }
 }

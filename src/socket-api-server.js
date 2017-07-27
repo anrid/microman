@@ -67,12 +67,15 @@ function setupWebSocketServer (server, serverId) {
   Rabbit.getPublishConsumer(serverId, message => {
     // Broadcast once we receive a published message.
     if (!isValidPublishMessage(message)) {
-      log(`Got invalid publish message:`, message)
+      log(`Got invalid publish message:`, JSON.stringify(message, null, 2))
       return
     }
 
     const { payload, meta } = message
-    const socket = wss.clients.find(x => x.id === meta.socketId)
+    let socket
+    wss.clients.forEach(x => {
+      if (x.id === meta.socketId) socket = x
+    })
 
     if (socket) {
       // Make sure we decrease throttled messages for this socket.
@@ -128,7 +131,6 @@ function setupWebSocketServer (server, serverId) {
         meta.requestId = message.meta ? message.meta.requestId : null
         meta.socketId = socket.id
         meta.from = message.topic
-        message.session = socket.session
 
         // Throttle incoming messages.
         Throttle.inc(socket.id)
@@ -140,11 +142,12 @@ function setupWebSocketServer (server, serverId) {
         log(`recv=1 topic=${message.topic} sid=${meta.sid}`)
 
         // Queue message for processing.
-        await reads.produce(message)
+        await reads.produce({ message, meta, session: socket.session })
         // Done.
       } catch (err) {
         log('error=', err)
         log(`errorSource=${json}`)
+        meta.ms = Date.now() - meta.ms
         send(socket, 'error', { message: err.message }, meta)
       }
     }
@@ -176,12 +179,15 @@ function isValidPublishMessage ({ topic, payload }) {
       payload.broadcast = null
     }
   }
+
+  return payload.reply !== null || payload.broadcast !== null
 }
 
 function broadcast (wss, messages, meta) {
   const timer = Date.now()
   let broadcasts = 0
   meta.broadcast = true
+  meta.ms = Date.now() - meta.ms // Total time (ms) spend handling message.
 
   const messageMap = messages.reduce((acc, message) => {
     const target = message.target || 'NONE'
@@ -204,7 +210,6 @@ function broadcast (wss, messages, meta) {
 }
 
 function send (socket, topic, payload, meta) {
-  meta.ms = Date.now() - meta.ms // Total time (ms) spend handling message.
   const message = JSON.stringify({ topic, payload, meta })
   log(`send=1 topic=${topic} ms=${meta.ms} from=${meta.from || ''} size=${message.length} sid=${meta.sid}`)
   socket.send(message)

@@ -3,13 +3,6 @@
 const Amqp = require('amqplib')
 const log = require('./logger')('rabbit')
 
-const PUBLISH_EXCHANGE = 'publish_exchange'
-const PUBLISH_QUEUE = 'publish_queue'
-const PUBLISH_QUEUE_OPTIONS = { durable: true, messageTtl: 1000 * 90 }
-
-const READS_QUEUE = 'reads_queue'
-const READS_QUEUE_OPTIONS = { durable: true, messageTtl: 1000 * 90 }
-
 function createConsumerStats () {
   return {
     last: {
@@ -49,20 +42,6 @@ function connect (handle, onOpen) {
   })
 }
 
-function recreateReadsQueue () {
-  return recreateQueue(READS_QUEUE, READS_QUEUE_OPTIONS)
-}
-
-function recreateQueue (queue, options) {
-  connect({ }, async conn => {
-    console.log(`Recreating queue: ${queue} (options: ${JSON.stringify(options)})`)
-    const ch = await conn.createChannel()
-    await ch.deleteQueue(queue)
-    await ch.assertQueue(queue, options)
-    closeWithDelay(conn)
-  })
-}
-
 async function produceTestReads (numOfMessages = 10, topic = 'test') {
   const producer = getReadsProducer(1)
   for (let i = 1; i <= numOfMessages; i++) {
@@ -78,22 +57,26 @@ async function consumeTestReads (id = 1) {
       await doSomethingCpuIntensiveThatBreaksSometimes()
     }
   })
-  log(`[consumer #${id}] Consuming messages ..`)
+  log(`[consumer ${id}] Consuming messages ..`)
 }
 
-function createProducer (id, queue, options) {
+function createProducer ({ id, exchange, type, queue, options }) {
   const t = { id }
 
   connect(t, async conn => {
     t.ch = await conn.createChannel()
-    await t.ch.assertQueue(queue, options)
+    if (exchange) {
+      await t.ch.assertExchange(exchange, type, options)
+    } else {
+      await t.ch.assertQueue(queue, options)
+    }
     return conn
   })
 
-  t.produce = async (msg = { }) => {
+  t.produce = async (msg = { }, options = { persistent: true }) => {
     await t.connection
     const buffer = Buffer.from(JSON.stringify(msg))
-    t.ch.sendToQueue(queue, buffer, { persistent: true })
+    t.ch.publish(exchange || '', queue || '', buffer, options)
   }
 
   t.close = async () => {
@@ -104,13 +87,19 @@ function createProducer (id, queue, options) {
   return t
 }
 
-function createConsumer (id, queue, options, onMessage) {
+function createConsumer ({ id, exchange, type, queue, options, onMessage }) {
   const t = { id }
 
   connect(t, async conn => {
     t.ch = await conn.createChannel()
-    await t.ch.assertQueue(queue, options)
-    await t.ch.prefetch(4)
+    if (exchange) {
+      await t.ch.assertExchange(exchange, type, options)
+      const q = await t.ch.assertQueue('', options)
+      await t.ch.bindQueue(q.queue, exchange, '')
+    } else {
+      await t.ch.assertQueue(queue, options)
+      await t.ch.prefetch(4)
+    }
 
     // Create stats and start the stats printer.
     if (!t.interval) {
@@ -120,14 +109,14 @@ function createConsumer (id, queue, options, onMessage) {
 
     t.ch.consume(queue, async msg => {
       if (msg == null) {
-        log(`[consumer #${id}] Got empty message.`)
+        log(`[consumer ${id}] Got empty message.`)
         return
       }
 
       try {
         const timer = Date.now()
         const content = JSON.parse(msg.content.toString())
-        log(`[consumer #${id}] Message content:`, content)
+        // log(`[consumer ${id}] Message content:`, content)
         t.stats.metrics.handled++
 
         // Execute message handler then ack.
@@ -138,13 +127,13 @@ function createConsumer (id, queue, options, onMessage) {
         t.stats.metrics.ack++
         t.stats.metrics.cpuTime = Math.round(t.stats.metrics.cpuTime + ((Date.now() - timer) / 1000))
       } catch (err) {
-        log(`[consumer #${id}] Error:`, err)
+        log(`[consumer ${id}] Error:`, err)
         const shouldRequeue = !msg.fields.redelivered
         if (shouldRequeue) {
-          log(`[consumer #${id}] Retrying message ${msg.fields.deliveryTag} ..`)
+          log(`[consumer ${id}] Retrying message ${msg.fields.deliveryTag} ..`)
           t.stats.metrics.requeue++
         } else {
-          log(`[consumer #${id}] Dropping message ${msg.fields.deliveryTag} ..`)
+          log(`[consumer ${id}] Dropping message ${msg.fields.deliveryTag} ..`)
           t.stats.metrics.drop++
         }
         t.ch.nack(msg, false, shouldRequeue)
@@ -165,7 +154,7 @@ function printStats (id, stats) {
     if (stats.last.ts) {
       cps = (stats.metrics.handled - stats.last.handled) / ((Date.now() - stats.last.ts) / 1000)
     }
-    log(`[consumer #${id}] Stats: ${s} - ${cps.toFixed(2)} cps.`)
+    log(`[consumer ${id}] Stats: ${s} - ${cps.toFixed(2)} cps.`)
     stats.last.row = s
     stats.last.handled = stats.metrics.handled
     stats.last.ts = Date.now()
@@ -173,11 +162,37 @@ function printStats (id, stats) {
 }
 
 function getReadsProducer (id) {
-  return createProducer(id, READS_QUEUE, READS_QUEUE_OPTIONS)
+  return createProducer({
+    id,
+    queue: 'reads_queue',
+    options: { durable: true, messageTtl: 1000 * 90 }
+  })
 }
 
 function getReadsConsumer (id, onMessage) {
-  return createConsumer(id, READS_QUEUE, READS_QUEUE_OPTIONS, onMessage)
+  return createConsumer({
+    id,
+    queue: 'reads_queue',
+    options: { durable: true, messageTtl: 1000 * 90 },
+    onMessage
+  })
+}
+
+function getPublishProducer (id) {
+  return createProducer({
+    id,
+    exchange: 'publish_exchange',
+    options: { exclusive: true }
+  })
+}
+
+function getPublishConsumer (id, onMessage) {
+  return createConsumer({
+    id,
+    exchange: 'publish_exchange',
+    options: { exclusive: true },
+    onMessage
+  })
 }
 
 function closeWithDelay (conn) {
@@ -200,9 +215,10 @@ function doSomethingCpuIntensiveThatBreaksSometimes () {
 }
 
 module.exports = {
-  recreateReadsQueue,
   getReadsProducer,
   getReadsConsumer,
+  getPublishProducer,
+  getPublishConsumer,
   produceTestReads,
   consumeTestReads
 }
