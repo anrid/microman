@@ -3,20 +3,19 @@
 
 const Rabbit = require('./rabbit')
 
-let promise = Promise.resolve()
 switch (process.argv[2]) {
   case 'p':
   case 'produce':
-    promise = Rabbit.produceReadQueueTestMessages(parseInt(process.argv[3] || '10', 10))
+    Rabbit.produceTestReads(parseInt(process.argv[3] || '10', 10))
     break
 
   case 'c':
   case 'consume':
-    promise = Rabbit.consumeReadQueueTestMessages(process.argv[3] || '1')
+    Rabbit.consumeTestReads(process.argv[3] || '1')
     break
 
   case 'recreate':
-    promise = Rabbit.recreateReadQueue()
+    Rabbit.recreateReadsQueue()
     break
 
   default:
@@ -30,5 +29,3 @@ switch (process.argv[2]) {
 
   `)
 }
-
-promise.catch(err => console.error(err))
