@@ -3,6 +3,18 @@
 const Amqp = require('amqplib')
 const log = require('./logger')('rabbit')
 
+const READS_QUEUE = 'reads_queue'
+const PUBLISH_EXCHANGE = 'publish_exchange'
+
+function deleteAll () {
+  connect({ }, async conn => {
+    const ch = await conn.createChannel()
+    await ch.deleteExchange(PUBLISH_EXCHANGE)
+    await ch.deleteQueue(READS_QUEUE)
+    closeWithDelay(conn)
+  })
+}
+
 function createConsumerStats () {
   return {
     last: {
@@ -164,7 +176,7 @@ function printStats (id, stats) {
 function getReadsProducer (id) {
   return createProducer({
     id,
-    queue: 'reads_queue',
+    queue: READS_QUEUE,
     options: { durable: true, messageTtl: 1000 * 90 }
   })
 }
@@ -172,7 +184,7 @@ function getReadsProducer (id) {
 function getReadsConsumer (id, onMessage) {
   return createConsumer({
     id,
-    queue: 'reads_queue',
+    queue: READS_QUEUE,
     options: { durable: true, messageTtl: 1000 * 90 },
     onMessage
   })
@@ -181,7 +193,8 @@ function getReadsConsumer (id, onMessage) {
 function getPublishProducer (id) {
   return createProducer({
     id,
-    exchange: 'publish_exchange',
+    exchange: PUBLISH_EXCHANGE,
+    type: 'fanout',
     options: { exclusive: true }
   })
 }
@@ -189,7 +202,8 @@ function getPublishProducer (id) {
 function getPublishConsumer (id, onMessage) {
   return createConsumer({
     id,
-    exchange: 'publish_exchange',
+    exchange: PUBLISH_EXCHANGE,
+    type: 'fanout',
     options: { exclusive: true },
     onMessage
   })
@@ -220,5 +234,6 @@ module.exports = {
   getPublishProducer,
   getPublishConsumer,
   produceTestReads,
-  consumeTestReads
+  consumeTestReads,
+  deleteAll
 }

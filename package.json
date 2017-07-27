@@ -21,7 +21,8 @@
     "nodemon": "^1.11.0"
   },
   "scripts": {
-    "consume": "concurrently './src/cli.js consume 1' './src/cli.js consume 2' './src/cli.js consume 3' './src/cli.js consume 4'",
-    "workers": "concurrently 'node ./src/examples/api-worker.js'"
+    "workers": "concurrently './src/examples/api-worker.js' './src/examples/api-worker.js'",
+    "servers": "concurrently './src/examples/api-server.js 11100' './src/examples/api-server.js 11200'",
+    "clients": "concurrently './src/examples/api-client.js api-dev.taskworld.com 11100 10' './src/examples/api-client.js api-dev.taskworld.com 11200 10'"
   }
 }

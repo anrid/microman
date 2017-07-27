@@ -64,30 +64,25 @@ function setupWebSocketServer (server, serverId) {
     const { payload, meta } = message
     let socket
     wss.clients.forEach(x => {
-      if (x.id === meta.socketId) socket = x
+      if (x.id === meta.socketId) {
+        socket = x
+        return
+      }
     })
 
     if (socket) {
       // Make sure we decrease throttled messages for this socket.
       Throttle.dec(socket.id)
-    }
 
-    if (payload.session) {
-      // Upgrade this socket connection if a session object is found (perform a handshake).
-      log(`ns=${payload.session.email} id=${payload.session.userId}`)
-      if (socket) {
+      if (payload.session) {
+        // Upgrade this socket connection if a session object is found (perform a handshake).
+        log(`ns=${payload.session.email} id=${payload.session.userId}`)
         socket.session = payload.session
-      } else {
-        log(`Could not find a socket with id ${meta.soc}`)
       }
-    }
 
-    if (payload.reply) {
-      // Reply to single socket connected to this server.
-      if (socket) {
+      if (payload.reply) {
+        // Reply to single socket connected to this server.
         send(socket, payload.reply.topic, payload.reply.payload, meta)
-      } else {
-        log(`Could not find a socket with id ${meta.soc}`)
       }
     }
 
@@ -106,7 +101,8 @@ function setupWebSocketServer (server, serverId) {
 
     async function onMessage (json) {
       const meta = {
-        ms: Date.now(), // Start timer when we receive a message.
+        start: Date.now(), // Start timer when we receive a message.
+        ms: 0,
         sid: socket.session ? socket.session.email : 'public',
         from: 'server'
       }
@@ -137,7 +133,6 @@ function setupWebSocketServer (server, serverId) {
       } catch (err) {
         log('error=', err)
         log(`errorSource=${json}`)
-        meta.ms = Date.now() - meta.ms
         send(socket, 'error', { message: err.message }, meta)
       }
     }
@@ -149,6 +144,7 @@ function setupWebSocketServer (server, serverId) {
 function ackMessage (socket, meta) {
   // Ack message.
   if (meta.requestId) {
+    meta.ms = Date.now() - meta.start
     socket.send(JSON.stringify({ topic: 'ack', payload: null, meta }))
   }
 }
@@ -177,7 +173,6 @@ function broadcast (wss, messages, meta) {
   const timer = Date.now()
   let broadcasts = 0
   meta.broadcast = true
-  meta.ms = Date.now() - meta.ms // Total time (ms) spend handling message.
 
   const messageMap = messages.reduce((acc, message) => {
     const target = message.target || 'NONE'
@@ -200,6 +195,10 @@ function broadcast (wss, messages, meta) {
 }
 
 function send (socket, topic, payload, meta) {
+  if (!meta.ms && meta.start) {
+    // Total time (ms) spend handling message.
+    meta.ms = Date.now() - meta.start
+  }
   const message = JSON.stringify({ topic, payload, meta })
   log(`send=1 topic=${topic} ms=${meta.ms} from=${meta.from || ''} size=${message.length} sid=${meta.sid}`)
   socket.send(message)

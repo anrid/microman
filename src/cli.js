@@ -14,8 +14,8 @@ switch (process.argv[2]) {
     Rabbit.consumeTestReads(process.argv[3] || '1')
     break
 
-  case 'recreate':
-    Rabbit.recreateReadsQueue()
+  case 'delete-all':
+    Rabbit.deleteAll()
     break
 
   default:
@@ -23,9 +23,8 @@ switch (process.argv[2]) {
   Usage: node rabbit.js command [arg]
 
   commands:
-      produce     Produce [arg] messages on read queue (defaults to 10).
-      consumer    Consume messages in read queue.
-      recreate    Recreates queue.
-
+      produce       Produce [arg] messages on read queue (defaults to 10).
+      consumer      Consume messages in read queue.
+      delete-all    Deletes all exchanges and queues.
   `)
 }
