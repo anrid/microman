@@ -1,8 +1,9 @@
+#!/usr/bin/env node
 'use strict'
 
+const Rabbit = require('../rabbit')
 const Shortid = require('shortid')
 const log = require('../logger')('worker')
-const Rabbit = require('../rabbit')
 
 run().catch(err => console.error(err))
 

@@ -24,7 +24,7 @@ function connect (handle, onOpen) {
   handle.connection = Amqp.connect('amqp://localhost')
   .then(conn => {
     conn.on('close', err => {
-      log('Connection closed.', err || '')
+      log('Connection closed.', err ? `Error: ${err.message}` : '')
       // Automatically reconnect.
       // Optionally check if the close event was caused by a non-fatal error.
       // if (!require('amqplib/lib/connection').isFatalError(err)) {

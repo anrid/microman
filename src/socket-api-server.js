@@ -1,13 +1,5 @@
 'use strict'
 
-require('dotenv').config()
-const Assert = require('assert')
-
-Assert(process.env.MM_API_HOST, 'Missing MM_API_HOST env. Server host, e.g. 0.0.0.0')
-Assert(process.env.MM_API_PORT, 'Missing MM_API_PORT env. Server port, e.g. 10002')
-Assert(process.env.MM_CERT, 'Missing MM_CERT env. Path to server TLS cert')
-Assert(process.env.MM_CERT_KEY, 'Missing MM_CERT env. Path to server TLS cert private key')
-
 const Fs = require('fs')
 const Https = require('https')
 const Express = require('express')
@@ -19,40 +11,38 @@ const log = require('./logger')('socket')
 const Throttle = require('./throttle')
 const Shortid = require('shortid')
 
-createServer()
-
-function createServer () {
+function createServer (opts) {
   const serverId = Shortid.generate()
 
   const app = setupExpressApp()
 
-  log(`Loading TLS certificate: ${process.env.MM_CERT}`)
+  log(`Loading TLS certificate: ${opts.cert}`)
   const server = Https.createServer({
-    cert: Fs.readFileSync(process.env.MM_CERT),
-    key: Fs.readFileSync(process.env.MM_CERT_KEY)
+    cert: Fs.readFileSync(opts.cert),
+    key: Fs.readFileSync(opts.certKey)
   }, app)
 
   setupWebSocketServer(server, serverId)
 
-  server.listen(process.env.MM_API_PORT, process.env.MM_API_HOST, () => {
-    log(`Server running on ${process.env.MM_API_HOST}:${process.env.MM_API_PORT} ..`)
+  server.listen(opts.port, opts.host, () => {
+    log(`Server running on ${opts.host}:${opts.port} ..`)
   })
 }
 
-function setupExpressApp () {
+function setupExpressApp (port) {
   const app = Express()
 
   // Load connect middleware.
   const cors = require('cors')
   app.use(cors())
-  app.set('port', process.env.MM_API_PORT)
+  app.set('port', port)
   app.options('/', cors())
 
   // NOTE: Use this only during Google domain verification etc.
   // app.use('/', Express.static(require('path').resolve(__dirname, 'public')))
 
   app.get('/', function (req, res) {
-    res.end('Microman API Server: ' + Moment().format())
+    res.end('Microman Socket API Server: ' + Moment().format())
   })
 
   return app
@@ -214,3 +204,5 @@ function send (socket, topic, payload, meta) {
   log(`send=1 topic=${topic} ms=${meta.ms} from=${meta.from || ''} size=${message.length} sid=${meta.sid}`)
   socket.send(message)
 }
+
+module.exports = createServer
