@@ -3,6 +3,7 @@
   "version": "0.5.0",
   "author": "Anri Digholm",
   "license": "MIT",
+  "keywords": "microservice back-end WebSocket API framework server cluster socket rabbitmq scale scalable queue worker",
   "dependencies": {
     "amqplib": "^0.5.1",
     "bluebird": "^3.5.0",
