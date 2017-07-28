@@ -60,8 +60,8 @@ function setupWebSocketServer (server, serverId) {
       log(`Got invalid publish message:`, JSON.stringify(message, null, 2))
       return
     }
-
     const { payload, meta } = message
+
     let socket
     wss.clients.forEach(x => {
       if (x.id === meta.socketId) {
@@ -149,8 +149,12 @@ function ackMessage (socket, meta) {
   }
 }
 
-function isValidPublishMessage ({ topic, payload }) {
-  if (!topic || topic !== 'publish' || !payload || typeof payload !== 'object') return false
+function isValidPublishMessage ({ topic, payload, meta }) {
+  const isValidTopic = topic === 'publish'
+  const isValidPayload = typeof payload === 'object'
+  const isValidMetadata = typeof meta === 'object' && meta.socketId
+
+  if (!isValidTopic || !isValidPayload || !isValidMetadata) return false
 
   if (payload.reply && typeof payload.reply === 'object') {
     if (!payload.reply.topic || !payload.reply.payload) {
