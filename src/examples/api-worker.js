@@ -28,6 +28,11 @@ async function run () {
         break
       }
 
+      case 'echo:slow': {
+        await echoSlow({ message, meta, reply })
+        break
+      }
+
       case 'heavy': {
         await heavy({ message, meta, reply })
         break
@@ -41,22 +46,29 @@ async function run () {
 
 async function heavy ({ message, meta, reply }) {
   // Heavy duty !
-  const secret = Crypto.randomBytes(10).toString('hex')
-  const salt = Crypto.randomBytes(10).toString('hex')
-  Crypto.pbkdf2(secret, salt, 10000, 512, 'sha512', (err, derivedKey) => {
+  const secret = Crypto.randomBytes(10)
+  const salt = Crypto.randomBytes(10)
+  Crypto.pbkdf2(secret, salt, 10000, 512, 'sha512', (err, encrypted) => {
     if (err) {
       return reply('error', { message: err.message }, meta)
     }
-    reply('heavy', { encrypted: derivedKey }, meta)
+    reply('heavy', { encrypted: encrypted.toString('hex') }, meta)
   })
 }
 
 async function echo ({ message, meta, reply }) {
   // Simple echo.
-  reply(message.topic, message.payload, meta)
+  reply('echo', message.payload, meta)
+}
+
+async function echoSlow ({ message, meta, reply }) {
+  // Echo with a delay.
+  setTimeout(() => {
+    reply('echo', message.payload, meta)
+  }, 4000)
 }
 
 async function echoAll ({ message, meta, reply }) {
   // FIXME: Broadcasts echo back to everyone connected ! Remove this later.
-  reply('ALL', message.topic, message.payload, meta)
+  reply('ALL', 'echo:all', message.payload, meta)
 }

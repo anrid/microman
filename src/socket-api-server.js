@@ -50,6 +50,8 @@ function setupExpressApp (port) {
 
 function setupWebSocketServer (server, serverId) {
   const wss = new WebSocketServer({ server, path: '/' })
+
+  // Handle socket connections.
   wss.on('connection', onConnection)
 
   // Setup RabbitMQ producer and consumer.
@@ -97,7 +99,12 @@ function setupWebSocketServer (server, serverId) {
 
   function onConnection (socket) {
     socket.id = Shortid.generate()
+
     socket.on('message', onMessage)
+    socket.on('close', () => {
+      const sid = socket.session ? socket.session.email : 'public'
+      log(`close=1 socket=${socket.id} sid=${sid}`)
+    })
 
     async function onMessage (json) {
       const meta = {
