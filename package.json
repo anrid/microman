@@ -1,9 +1,10 @@
 {
   "name": "microman",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "author": "Anri Digholm",
   "license": "MIT",
   "keywords": "microservice back-end WebSocket API framework server cluster socket rabbitmq scale scalable queue worker",
+  "repository": "https://github.com/anrid/microman",
   "dependencies": {
     "amqplib": "^0.5.1",
     "bluebird": "^3.5.0",

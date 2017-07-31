@@ -10,11 +10,13 @@ services:
       - network
 
   rabbitmq:
-    image: rabbitmq:3.6.10
+    image: rabbitmq:3.6.10-management
     hostname: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbit-data:/var/lib/rabbitmq
     networks:
       - network
 
@@ -45,15 +47,18 @@ services:
       - network
 
 volumes:
+  redis-data:
+    external:
+      name: redis-volume
+  rabbit-data:
+    external:
+      name: rabbit-volume
   mongo-data:
     external:
       name: mongo-volume
   elastic-data:
     external:
       name: elastic-volume
-  redis-data:
-    external:
-      name: redis-volume
 
 networks:
   network:

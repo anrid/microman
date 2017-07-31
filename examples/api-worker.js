@@ -69,14 +69,17 @@ async function signup ({ message, meta, reply }) {
 
 async function heavy ({ message, meta, reply }) {
   // Heavy duty !
-  const secret = message.value || Crypto.randomBytes(10)
+  const password = message.value || Crypto.randomBytes(10)
   const salt = process.env.MICRO_API_SECRET
-  Crypto.pbkdf2(secret, salt, 10000, 512, 'sha512', (err, encrypted) => {
-    if (err) {
-      return reply('error', { message: err.message }, meta)
-    }
-    reply('heavy', { encrypted: encrypted.toString('hex') }, meta)
+  const encrypted = await new Promise((resolve, reject) => {
+    Crypto.pbkdf2(password, salt, 10000, 512, 'sha512', (err, encrypted) => {
+      if (err) {
+        return reject(err)
+      }
+      resolve(encrypted)
+    })
   })
+  reply('heavy', { encrypted: encrypted.toString('hex') }, meta)
 }
 
 // =================================================================

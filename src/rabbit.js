@@ -177,7 +177,7 @@ function getReadsProducer (id) {
   return createProducer({
     id,
     queue: READS_QUEUE,
-    options: { durable: true, messageTtl: 1000 * 90 }
+    options: { durable: true, messageTtl: 1000 * 30 }
   })
 }
 
@@ -185,7 +185,7 @@ function getReadsConsumer (id, onMessage) {
   return createConsumer({
     id,
     queue: READS_QUEUE,
-    options: { durable: true, messageTtl: 1000 * 90 },
+    options: { durable: true, messageTtl: 1000 * 30 },
     onMessage
   })
 }
