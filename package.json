@@ -11,9 +11,12 @@
     "cors": "^2.8.4",
     "dotenv": "^4.0.0",
     "express": "^4.15.3",
+    "joi": "^10.6.0",
+    "jsonwebtoken": "^7.4.1",
     "minimist": "^1.2.0",
     "moment": "^2.18.1",
     "mongodb": "^2.2.30",
+    "redis": "^2.7.1",
     "shortid": "^2.2.8",
     "uuid": "^3.1.0",
     "uws": "^8.14.0"
@@ -22,8 +25,9 @@
     "nodemon": "^1.11.0"
   },
   "scripts": {
-    "workers": "concurrently './src/examples/api-worker.js' './src/examples/api-worker.js'",
-    "servers": "concurrently './src/examples/api-server.js 11100' './src/examples/api-server.js 11200'",
-    "clients": "concurrently './src/examples/api-client.js api-dev.taskworld.com 11100 10' './src/examples/api-client.js api-dev.taskworld.com 11200 10'"
+    "worker-dev": "nodemon --watch ./examples examples/api-worker.js",
+    "workers": "concurrently './examples/api-worker.js' './examples/api-worker.js'",
+    "servers": "concurrently './examples/api-server.js 11100' './examples/api-server.js 11200'",
+    "clients": "concurrently './examples/api-client.js api-dev.taskworld.com 11100 10' './examples/api-client.js api-dev.taskworld.com 11200 10'"
   }
 }

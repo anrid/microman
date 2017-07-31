@@ -62,7 +62,7 @@ function setupWebSocketServer (server, serverId) {
       log(`Got invalid publish message:`, JSON.stringify(message, null, 2))
       return
     }
-    const { payload, meta } = message
+    const { payload, meta, session } = message
 
     let socket
     wss.clients.forEach(x => {
@@ -76,10 +76,15 @@ function setupWebSocketServer (server, serverId) {
       // Make sure we decrease throttled messages for this socket.
       Throttle.dec(socket.id)
 
-      if (payload.session) {
-        // Upgrade this socket connection if a session object is found (perform a handshake).
-        log(`ns=${payload.session.email} id=${payload.session.userId}`)
-        socket.session = payload.session
+      // Upgrade / handshake this socket connetions if we get a session.
+      if (session) {
+        if (!session.userId || !session.email) {
+          log(`got invalid session data: ${JSON.stringify(session)}`)
+        } else {
+          // Upgrade this socket connection (i.e. perform a handshake) if a session object is found in reply.
+          log(`ns=${session.email} id=${session.userId}`)
+          socket.session = session
+        }
       }
 
       if (payload.reply) {

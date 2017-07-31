@@ -18,66 +18,72 @@ A back-end WebSocket API framework using a microservice architecture.
 
 ### Usage
 
-Install all the things.
+1. Install all the things.
 ```bash
+$ git clone git@github.com:anrid/microman.git
+$ cd microman
 $ yarn install
 ```
 
-Run docker-compose. You only need RabbitMQ so feel free to adjust the `docker-compose.yml` to suit your needs.
+2. Create a `.env` file in the project root (needed to run examples) and fill in as follows:
+```bash
+# ./microman/.env
+MICRO_HOST=api-dev.taskworld.com
+MICRO_CERT=/path/to/tls/cert.crt
+MICRO_CERT_KEY=/path/to/tls/cert.key
+MICRO_API_SECRET=some-secret-123456
+MICRO_TOKEN_EXPIRES_DAYS=7
+MICRO_MONGO_DB_URL=mongodb://localhost/microman_dev
+```
+
+3. Run docker-compose. You only need RabbitMQ so feel free to adjust the `docker-compose.yml` to suit your needs.
 ```bash
 $ docker-compose up
 ```
 
-Start the example socket server cluster (a couple of processes):
-
+4. Start the example socket server cluster (a couple of processes):
 ```bash
 $ yarn servers
-
 # This runs:
-# $ concurrently './src/examples/api-server.js 11100' './src/examples/api-server.js 11200'
+# $ concurrently './examples/api-server.js 11100' './examples/api-server.js 11200'
 ```
 
-Start the example APi worker cluster:
-
+5. Start the example APi worker cluster:
 ```bash
 $ yarn workers
-
 # This runs:
-# $ concurrently './src/examples/api-worker.js' './src/examples/api-worker.js'
+# $ concurrently './examples/api-worker.js' './examples/api-worker.js'
 ```
 
-Run the API client against to test everything:
-
+6. Run the API client against to test everything:
 ```bash
-
 # Simple test client.
 # Runs an infinite loop of 'echo' calls with a delay of 100ms.
-$ ./src/examples/api-client.js \
+$ ./examples/api-client.js \
   --host api-dev.taskworld.com \
   --port 11100
-
+#
 # Multiple concurrent clients.
 # Same as above but with 10 concurrent clients.
-$ ./src/examples/api-client.js \
+$ ./examples/api-client.js \
   --host api-dev.taskworld.com \
   --port 11100 \
   --clients 10
-
+#
 # Max throughput.
 # Have 500 concurrent clients send 3 rapid 'echo's each with a delay of 500ms.
 # WARNING: Do NOT do this unless you’ve set ulimit properly.
 # For fellow macOS users, do this: https://blog.dekstroza.io/ulimit-shenanigans-on-osx-el-capitan/
-$ ./src/examples/api-client.js \
+$ ./examples/api-client.js \
   --host api-dev.taskworld.com \
   --port 11100 \
   --clients 500 \
   --iterations 3 \
   --delay 500
-
+#
 # Overload.
 # Do CPU heavy work with 10 concurrent clients.
-
-$ ./src/examples/api-client.js \
+$ ./examples/api-client.js \
   --host api-dev.taskworld.com \
   --port 11100 \
   --clients 10 \

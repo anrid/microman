@@ -4,27 +4,26 @@
 
   Simple test client.
   Runs an infinite loop of 'echo' calls with a delay of 100ms.
-  ./src/examples/api-client.js --host api-dev.taskworld.com --port 11100
+  ./examples/api-client.js --host api-dev.taskworld.com --port 11100
 
   Multiple concurrent clients. Same as above but with 10 concurrent clients.
-  ./src/examples/api-client.js ... --clients 10
+  ./examples/api-client.js --host api-dev.taskworld.com --port 11100 --clients 10
 
   Max throughput. Have 500 concurrent clients send 3 rapid 'echo's each with a delay of 500ms.
-  ./src/examples/api-client.js ... --clients 500 --iterations 3 --delay 500
+  ./examples/api-client.js --host api-dev.taskworld.com --port 11100 --clients 500 --iterations 3 --delay 500
 
   Overload. Do heavy work with 10 concurrent clients causing API throttling to kick in.
-  ./src/examples/api-client.js ... --clients 10 --iterations 10 --delay 100 --topic heavy
+  ./examples/api-client.js --host api-dev.taskworld.com --port 11100 --clients 10 --iterations 10 --delay 100 --topic heavy
 */
-
 'use strict'
 
 const Assert = require('assert')
 const Shortid = require('shortid')
 const P = require('bluebird')
-const log = require('../logger')('client')
 const WebSocket = require('uws')
-
+const log = require('../src/logger')('client')
 const args = require('minimist')(process.argv.slice(2))
+
 Assert(args.host, 'Missing --host arg.')
 Assert(args.port, 'Missing --port arg.')
 args.clients = args.clients || 1
