@@ -10,11 +10,11 @@ A back-end WebSocket API framework using a microservice architecture.
 
 - Uses workers to process API requests.
 
-- Scales well. Clients connect to a cluster of socket servers that only manage connections, rate limits and broadcasting. All requests are delegated to workers via a durable worker queue.
+- Scales well. Clients connect to a cluster of socket servers that only manage connections, broadcasting and rate limits. All requests are delegated to workers via a durable worker queue (RabbitMQ).
 
-- Supports broadcasting to a user session (user id) across the whole socket server cluster, to handle users connected on multiple devices and/or browser tabs.
+- Supports broadcasting to a user session (e.g. a user id) across the entire socket server cluster, to handle users connected with multiple devices or browser tabs.
 
-- Rate limiting (throttling) of incoming API requests.
+- Rate limiting / throttling of incoming API requests.
 
 ### Usage
 
@@ -41,21 +41,21 @@ MICRO_MONGO_DB_URL=mongodb://localhost/microman_dev
 $ docker-compose up
 ```
 
-4. Start the example socket server cluster (a couple of processes):
+4. Start the example socket server cluster:
 ```bash
 $ yarn servers
 # This runs:
 # $ concurrently './examples/api-server.js 11100' './examples/api-server.js 11200'
 ```
 
-5. Start the example APi worker cluster:
+5. Start the example API worker cluster:
 ```bash
 $ yarn workers
 # This runs:
 # $ concurrently './examples/api-worker.js' './examples/api-worker.js'
 ```
 
-6. Run the API client against to test everything:
+6. Run the API client to test everything:
 ```bash
 # Simple test client.
 # Runs an infinite loop of 'echo' calls with a delay of 100ms.
@@ -70,10 +70,10 @@ $ ./examples/api-client.js \
   --port 11100 \
   --clients 10
 #
-# Max throughput.
+# A whole bunch of clients.
 # Have 500 concurrent clients send 3 rapid 'echo's each with a delay of 500ms.
-# WARNING: Do NOT do this unless you’ve set ulimit properly.
-# For fellow macOS users, do this: https://blog.dekstroza.io/ulimit-shenanigans-on-osx-el-capitan/
+# WARNING: Do NOT do this unless you’ve set ulimit properly (will force you to reboot your mac) !
+# Fellow macOS users, do this: https://blog.dekstroza.io/ulimit-shenanigans-on-osx-el-capitan/
 $ ./examples/api-client.js \
   --host api-dev.taskworld.com \
   --port 11100 \
