@@ -1,6 +1,6 @@
 {
   "name": "microman",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Anri Digholm",
   "license": "MIT",
   "keywords": "microservice back-end WebSocket API framework server cluster socket rabbitmq scale scalable queue worker",
