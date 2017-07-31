@@ -28,10 +28,11 @@ async function run (opts) {
   // Send a 'heavy' and expect a 'heavy' reply.
   const resp2 = await client.send({
     topic: 'heavy',
-    payload: { value: 'ABC' },
+    payload: { password: 'abcd1234' },
     waitFor: 'heavy'
   })
-  Assert(resp2.payload.encrypted.length > 50, `Should contain a long encrypted string in payload.encrypted`)
+  Assert(resp2.payload.encrypted.length > 50, `Should have a long encrypted string in payload.encrypted`)
+  Assert(resp2.payload.salt.length > 10, `Should have a salt string in payload.salt`)
 
   // Send a 'signup' and expect a 'signup'
   const resp3 = await client.send({

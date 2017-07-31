@@ -5,7 +5,7 @@ const { getOneMinuteLoadAverage } = require('./cpu')
 
 const THROTTLE_PERIOD = 1000
 const THROTTLE_API_CALLS_PER_SOCKET = 5
-const THROTTLE_API_CALLS_TOTAL = 1000
+const THROTTLE_API_CALLS_TOTAL = 250
 
 const _stats = {
   throttle: { },
