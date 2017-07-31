@@ -90,8 +90,14 @@ function createClient (id, { host, port, topic, iterations, delay, clients }) {
     ws.on('open', async () => {
       if (clients < 10) log(`[${id}] Connected.`)
 
+      const payload = {
+        title: `Test Title #${id}`,
+        password: 'abcd1234',
+        email: 'ace@base.se'
+      }
+
       while (iterations === true || iterations > 0) {
-        send(topic)
+        send(topic, payload)
         await P.delay(randomDelay(delay))
         if (iterations !== true) iterations--
       }
@@ -113,7 +119,9 @@ function createClient (id, { host, port, topic, iterations, delay, clients }) {
     })
 
     ws.on('message', (data, flags) => {
+      // Parse message and calculate stats.
       const message = JSON.parse(data)
+
       if (message.topic === 'ack') {
         stats.ack++
         _global.ack++
@@ -134,6 +142,10 @@ function createClient (id, { host, port, topic, iterations, delay, clients }) {
           }
           _global.errors[err]++
         }
+      }
+
+      if (clients === 1 && iterations === 1) {
+        log(`[${id}] Message: ${JSON.stringify(message, null, 2)}`)
       }
 
       if (clients < 10 && stats.messages % 100 === 0) {
