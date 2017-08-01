@@ -6,6 +6,10 @@ const log = require('./logger')('rabbit')
 const READS_QUEUE = 'reads_queue'
 const PUBLISH_EXCHANGE = 'publish_exchange'
 
+// Enable automatic retrying (requeuing) of messages who’s handlers
+// throw an exception.
+const AUTO_RETRY = false
+
 function deleteAll () {
   connect({ }, async conn => {
     const ch = await conn.createChannel()
@@ -27,7 +31,7 @@ function createConsumerStats () {
       nack: 0,
       requeue: 0,
       drop: 0,
-      cpuTime: 0
+      time: 0
     }
   }
 }
@@ -36,11 +40,11 @@ function connect (handle, onOpen) {
   handle.connection = Amqp.connect('amqp://localhost')
   .then(conn => {
     conn.on('close', err => {
-      log('Connection closed.', err ? `Error: ${err.message}` : '')
+      log('event=connection_closed', err ? ` error='${err.message}'` : '')
       // Automatically reconnect.
       // Optionally check if the close event was caused by a non-fatal error.
       // if (!require('amqplib/lib/connection').isFatalError(err)) {
-      log('Reconnecting ..')
+      log('event=reconnect')
       setTimeout(() => connect(handle, onOpen), 3000)
     })
     conn.on('error', err => log('Error:', err))
@@ -49,7 +53,7 @@ function connect (handle, onOpen) {
   .then(onOpen)
   .catch(err => {
     console.log('Error:', err)
-    log('Reconnecting (stubbornly!) ..')
+    log('event=forceful_reconnect')
     setTimeout(() => connect(handle, onOpen), 3000)
   })
 }
@@ -69,7 +73,7 @@ async function consumeTestReads (id = 1) {
       await doSomethingCpuIntensiveThatBreaksSometimes()
     }
   })
-  log(`[consumer ${id}] Consuming messages ..`)
+  log(`id=${id} event=consuming_messages`)
 }
 
 function createProducer ({ id, exchange, type, queue, options }) {
@@ -121,14 +125,14 @@ function createConsumer ({ id, exchange, type, queue, options, onMessage }) {
 
     t.ch.consume(queue, async msg => {
       if (msg == null) {
-        log(`[consumer ${id}] Got empty message.`)
+        log(`id=${id} error='Got empty message'`)
         return
       }
 
       try {
         const timer = Date.now()
         const content = JSON.parse(msg.content.toString())
-        // log(`[consumer ${id}] Message content:`, content)
+        // log(`id=${id} Message content:`, content)
         t.stats.metrics.handled++
 
         // Execute message handler then ack.
@@ -137,15 +141,17 @@ function createConsumer ({ id, exchange, type, queue, options, onMessage }) {
 
         // Track stats.
         t.stats.metrics.ack++
-        t.stats.metrics.cpuTime = Math.round(t.stats.metrics.cpuTime + ((Date.now() - timer) / 1000))
+        const totalTimeInSec = t.stats.metrics.time + ((Date.now() - timer) / 1000)
+        t.stats.metrics.time = Math.round(totalTimeInSec * 1000) / 1000 // Scale to 3 decimal points.
       } catch (err) {
-        log(`[consumer ${id}] Error:`, err)
-        const shouldRequeue = !msg.fields.redelivered
+        // Nack the message if an exception gets through to this point.
+        log(`id=${id} Error:`, err)
+        const shouldRequeue = AUTO_RETRY && !msg.fields.redelivered
         if (shouldRequeue) {
-          log(`[consumer ${id}] Retrying message ${msg.fields.deliveryTag} ..`)
+          log(`id=${id} event=retry_message message_id=${msg.fields.deliveryTag}`)
           t.stats.metrics.requeue++
         } else {
-          log(`[consumer ${id}] Dropping message ${msg.fields.deliveryTag} ..`)
+          log(`id=${id} event=drop_message message_id=${msg.fields.deliveryTag}`)
           t.stats.metrics.drop++
         }
         t.ch.nack(msg, false, shouldRequeue)
@@ -166,7 +172,7 @@ function printStats (id, stats) {
     if (stats.last.ts) {
       cps = (stats.metrics.handled - stats.last.handled) / ((Date.now() - stats.last.ts) / 1000)
     }
-    log(`[consumer ${id}] Stats: ${s} - ${cps.toFixed(2)} cps.`)
+    log(`id=${id} stats='${s}' cps=${cps.toFixed(2)}`)
     stats.last.row = s
     stats.last.handled = stats.metrics.handled
     stats.last.ts = Date.now()

@@ -40,7 +40,7 @@ async function createReadsWorker (topicToHandlerMap) {
   async function onMessage ({ message, meta, session }) {
     try {
       // Lookup handler and execute.
-      log(`[${workerId}] topic=${message.topic} sid=${meta.sid}`)
+      log(`id=${workerId} topic=${message.topic} sid=${meta.sid}`)
 
       const item = topicToHandlerMap[message.topic]
       if (!item) throw new Error(`unsupported topic '${message.topic}'`)
@@ -54,11 +54,17 @@ async function createReadsWorker (topicToHandlerMap) {
       // Call the handler.
       await item.handler({ message, meta, reply, broadcast, session })
     } catch (err) {
-      const message = `[${workerId}] Error: ${err.message}`
+      // Handle errors.
+      log(`id=${workerId} error='${err.message}'`)
+
       const shortStack = err.stack.split(`\n`).slice(1, 4).join(`\n`).trim()
-      log(message)
       log('Stacktrace:', shortStack)
-      reply('error', { message }, meta)
+
+      reply('error', { message: err.message }, meta)
+
+      // NOTE: You can rethrow the exception here to have RabbitMQ requeue
+      // the message and let another worker have a go at it !
+      // throw err
     }
   }
 

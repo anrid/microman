@@ -16,7 +16,7 @@ function createServer (opts) {
 
   const app = setupExpressApp()
 
-  log(`Loading TLS certificate: ${opts.cert}`)
+  log(`msg='Loading TLS certificate: ${opts.cert}'`)
   const server = Https.createServer({
     cert: Fs.readFileSync(opts.cert),
     key: Fs.readFileSync(opts.certKey)
@@ -25,7 +25,7 @@ function createServer (opts) {
   setupWebSocketServer(server, serverId)
 
   server.listen(opts.port, opts.host, () => {
-    log(`Server running on ${opts.host}:${opts.port} ..`)
+    log(`msg='Server running on ${opts.host}:${opts.port}'`)
   })
 }
 
@@ -59,7 +59,7 @@ function setupWebSocketServer (server, serverId) {
   Rabbit.getPublishConsumer(serverId, message => {
     // Broadcast once we receive a published message.
     if (!isValidPublishMessage(message)) {
-      log(`Got invalid publish message:`, JSON.stringify(message, null, 2))
+      log(`error='Got invalid publish message: ${JSON.stringify(message)}'`)
       return
     }
     const { payload, meta, session } = message
@@ -79,10 +79,10 @@ function setupWebSocketServer (server, serverId) {
       // Upgrade / handshake this socket connetions if we get a session.
       if (session) {
         if (!session.userId || !session.email) {
-          log(`got invalid session data: ${JSON.stringify(session)}`)
+          log(`error='Got invalid session data: ${JSON.stringify(session)}'`)
         } else {
           // Upgrade this socket connection (i.e. perform a handshake) if a session object is found in reply.
-          log(`ns=${session.email} id=${session.userId}`)
+          log(`ns=${session.email} uid=${session.userId}`)
           socket.session = session
         }
       }
@@ -143,8 +143,8 @@ function setupWebSocketServer (server, serverId) {
         await reads.produce({ message, meta, session: socket.session })
         // Done.
       } catch (err) {
-        log('error=', err)
-        log(`errorSource=${json}`)
+        log('Error:', err)
+        log(`errorSource='${json}'`)
         send(socket, 'error', { message: err.message }, meta)
       }
     }
@@ -170,14 +170,14 @@ function isValidPublishMessage ({ topic, payload, meta }) {
 
   if (payload.reply && typeof payload.reply === 'object') {
     if (!payload.reply.topic || !payload.reply.payload) {
-      log('error=Invalid reply payload=' + JSON.stringify(payload.reply))
+      log(`error='Invalid reply payload: ${JSON.stringify(payload.reply)}'`)
       payload.reply = null
     }
   }
 
   if (payload.broadcast && Array.isArray(payload.broadcast)) {
     if (!payload.broadcast.every(x => x.topic && x.payload)) {
-      log('error=Invalid broadcast payload=' + JSON.stringify(payload.broadcast))
+      log(`error='Invalid broadcast payload: ${JSON.stringify(payload.broadcast)}''`)
       payload.broadcast = null
     }
   }

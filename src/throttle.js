@@ -31,7 +31,7 @@ function _printStats () {
     const cps = t.total.count / (THROTTLE_PERIOD / 1000)
     if (cps) {
       const cpu = getOneMinuteLoadAverage()
-      const line = `${cps.toFixed(2)} calls / sec, cpu=${cpu.toFixed(2)}`
+      const line = `cps=${cps.toFixed(2)} cpu=${cpu.toFixed(2)}`
       if (_stats.last.line !== line && t.total.count !== _stats.last.count) log(line)
       _stats.last.line = line
       _stats.last.count = t.total.count
