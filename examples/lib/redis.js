@@ -14,11 +14,13 @@ function createClient () {
     retry_strategy: function (options) {
       if (options.error && options.error.code === 'ECONNREFUSED') {
         // End reconnecting on a specific error and flush all commands with a individual error
-        return new Error(`[${clientId}] The server refused the connection`)
+        log(`id=${clientId} event=error msg='The server refused the connection'`)
+        return new Error(`The server refused the connection`)
       }
       if (options.total_retry_time > 1000 * 60 * 60) {
         // End reconnecting after a specific timeout and flush all commands with a individual error
-        return new Error(`[${clientId}] Retry time exhausted`)
+        log(`id=${clientId} event=error msg='Retry time exhausted'`)
+        return new Error(`Retry time exhausted`)
       }
       if (options.times_connected > 30) {
         // End reconnecting with built in error
@@ -32,28 +34,28 @@ function createClient () {
   client.on('ready', () => {
     // Emitted once a connection is established.
     // Commands issued before the ready event are queued, then replayed just before this event is emitted.
-    log(`[${clientId}] Ready.`)
+    log(`id=${clientId} event=ready`)
   })
 
   client.on('connect', () => {
     // Emitted as soon as the stream is connected to the server.
-    log(`[${clientId}] Connected.`)
+    log(`id=${clientId} event=connected`)
   })
 
   client.on('reconnecting', () => {
     // Emitted when trying to reconnect to the Redis server after losing the connection.
     // Listeners are passed an object containing delay (in ms) and attempt (the attempt #) attributes.
-    log(`[${clientId}] Reconnecting ..`)
+    log(`id=${clientId} event=reconnecting`)
   })
 
   client.on('error', err => {
     // Emitted when encountering an error connecting to the Redis server or when any other in node_redis occurs.
-    log(`[${clientId}] Error:`, err)
+    log(`id=${clientId} event=error msg=${err.message}`)
   })
 
   client.on('end', () => {
     // Emitted when an established Redis server connection has closed.
-    log(`[${clientId}] Closed.`)
+    log(`id=${clientId} event=closed`)
   })
 
   function get (key) {

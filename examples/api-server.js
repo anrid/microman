@@ -5,9 +5,9 @@ require('dotenv').config()
 const Assert = require('assert')
 Assert(process.argv[2], 'Missing port arg.')
 
-const apiServer = require('../src/socket-api-server')
+const { SocketServer } = require('../src/')
 
-apiServer({
+SocketServer({
   host: process.env.MICRO_HOST,
   port: process.argv[2],
   cert: process.env.MICRO_CERT,

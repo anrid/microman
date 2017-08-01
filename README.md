@@ -59,13 +59,13 @@ $ yarn workers
 ```bash
 # Simple test client.
 # Runs an infinite loop of 'echo' calls with a delay of 100ms.
-$ ./examples/api-client.js \
+$ ./examples/loadtest-client.js \
   --host api-dev.taskworld.com \
   --port 11100
 #
 # Multiple concurrent clients.
 # Same as above but with 10 concurrent clients.
-$ ./examples/api-client.js \
+$ ./examples/loadtest-client.js \
   --host api-dev.taskworld.com \
   --port 11100 \
   --clients 10
@@ -74,7 +74,7 @@ $ ./examples/api-client.js \
 # Have 500 concurrent clients send 3 rapid 'echo's each with a delay of 500ms.
 # WARNING: Do NOT do this unless you’ve set ulimit properly (will force you to reboot your mac) !
 # Fellow macOS users, do this: https://blog.dekstroza.io/ulimit-shenanigans-on-osx-el-capitan/
-$ ./examples/api-client.js \
+$ ./examples/loadtest-client.js \
   --host api-dev.taskworld.com \
   --port 11100 \
   --clients 500 \
@@ -83,7 +83,7 @@ $ ./examples/api-client.js \
 #
 # Overload.
 # Do CPU heavy work with 10 concurrent clients.
-$ ./examples/api-client.js \
+$ ./examples/loadtest-client.js \
   --host api-dev.taskworld.com \
   --port 11100 \
   --clients 10 \

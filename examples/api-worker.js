@@ -2,13 +2,13 @@
 'use strict'
 
 require('dotenv').config()
-const Helper = require('../src/worker-helper')
+const { WorkerHelper } = require('../src')
 
 run().catch(err => console.error(err))
 
 async function run () {
   // Let’s do this.
-  Helper.createReadsWorker({
+  WorkerHelper.createReadsWorker({
     // Public.
     'echo:all': { handler: require('./topics/echo-all'), requireSession: false },
     'echo': { handler: require('./topics/echo'), requireSession: false },

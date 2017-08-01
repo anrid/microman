@@ -31,18 +31,23 @@ services:
     networks:
       - network
 
-  elastic:
-    image: elasticsearch:5.4.3-alpine
-    hostname: elastic
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.5.1
+    hostname: elasticsearch
     ports:
-      - 9200:9200
-      - 9300:9300
+      - "9200:9200"
+      - "9300:9300"
     environment:
-      - cluster.name=elastic-cluster
+      - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      mem_limit: 1g
     volumes:
-      - elastic-data:/usr/share/elasticsearch/data
+      - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
       - network
 
@@ -56,9 +61,9 @@ volumes:
   mongo-data:
     external:
       name: mongo-volume
-  elastic-data:
+  elasticsearch-data:
     external:
-      name: elastic-volume
+      name: elasticsearch-volume
 
 networks:
   network:

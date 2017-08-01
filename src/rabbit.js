@@ -9,6 +9,7 @@ const PUBLISH_EXCHANGE = 'publish_exchange'
 // Enable automatic retrying (requeuing) of messages who’s handlers
 // throw an exception.
 const AUTO_RETRY = false
+let _reconnects = 0
 
 function deleteAll () {
   connect({ }, async conn => {
@@ -40,20 +41,31 @@ function connect (handle, onOpen) {
   handle.connection = Amqp.connect('amqp://localhost')
   .then(conn => {
     conn.on('close', err => {
-      log('event=connection_closed', err ? ` error='${err.message}'` : '')
+      log(`id=${handle.id} event=disconnect`)
+      if (err) log(`event=error msg='${err.message}'`)
       // Automatically reconnect.
       // Optionally check if the close event was caused by a non-fatal error.
       // if (!require('amqplib/lib/connection').isFatalError(err)) {
-      log('event=reconnect')
+      log(`id=${handle.id} event=reconnect count=${++_reconnects}`)
       setTimeout(() => connect(handle, onOpen), 3000)
     })
-    conn.on('error', err => log('Error:', err))
+    conn.on('error', err => {
+      // log('Error:', err)
+      log(`id=${handle.id} event=error msg='${err.message}'`)
+    })
+    return conn
+  })
+  .then(conn => {
+    // Reset reconnects counts.
+    log(`id=${handle.id} event=connected`)
+    _reconnects = 0
     return conn
   })
   .then(onOpen)
   .catch(err => {
-    console.log('Error:', err)
-    log('event=forceful_reconnect')
+    // log('Error:', err)
+    log(`id=${handle.id} event=error msg='${err.message}'`)
+    log(`id=${handle.id} event=forceful_reconnect count=${++_reconnects}`)
     setTimeout(() => connect(handle, onOpen), 3000)
   })
 }
@@ -73,7 +85,6 @@ async function consumeTestReads (id = 1) {
       await doSomethingCpuIntensiveThatBreaksSometimes()
     }
   })
-  log(`id=${id} event=consuming_messages`)
 }
 
 function createProducer ({ id, exchange, type, queue, options }) {
@@ -123,16 +134,17 @@ function createConsumer ({ id, exchange, type, queue, options, onMessage }) {
       t.interval = setInterval(() => printStats(id, t.stats), 3000)
     }
 
+    log(`id=${id} event=consuming_messages`)
     t.ch.consume(queue, async msg => {
       if (msg == null) {
-        log(`id=${id} error='Got empty message'`)
+        log(`id=${id} event=error msg='Got empty message'`)
         return
       }
 
       try {
         const timer = Date.now()
         const content = JSON.parse(msg.content.toString())
-        // log(`id=${id} Message content:`, content)
+        // log(`id=${id} Consumed message:`, content)
         t.stats.metrics.handled++
 
         // Execute message handler then ack.
@@ -144,9 +156,12 @@ function createConsumer ({ id, exchange, type, queue, options, onMessage }) {
         const totalTimeInSec = t.stats.metrics.time + ((Date.now() - timer) / 1000)
         t.stats.metrics.time = Math.round(totalTimeInSec * 1000) / 1000 // Scale to 3 decimal points.
       } catch (err) {
-        // Nack the message if an exception gets through to this point.
-        log(`id=${id} Error:`, err)
+        // Nack the message if an exception gets through all the way to this point.
+        log('Error:', err)
+        log(`id=${id} event=error msg=${err.message}`)
+
         const shouldRequeue = AUTO_RETRY && !msg.fields.redelivered
+
         if (shouldRequeue) {
           log(`id=${id} event=retry_message message_id=${msg.fields.deliveryTag}`)
           t.stats.metrics.requeue++
@@ -172,7 +187,7 @@ function printStats (id, stats) {
     if (stats.last.ts) {
       cps = (stats.metrics.handled - stats.last.handled) / ((Date.now() - stats.last.ts) / 1000)
     }
-    log(`id=${id} stats='${s}' cps=${cps.toFixed(2)}`)
+    log(`id=${id} event=stats data='${s}' cps=${cps.toFixed(2)}`)
     stats.last.row = s
     stats.last.handled = stats.metrics.handled
     stats.last.ts = Date.now()

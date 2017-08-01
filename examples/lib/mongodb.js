@@ -16,9 +16,9 @@ async function connect (connectToUrl) {
 
   // mongodb://[username:password@]host1[:port1][/[database]
   const url = connectToUrl || process.env.MICRO_MONGO_DB_URL
-  log(`Connecting to ${url}`)
+  log(`event=connecting msg='Connecting to ${url}'`)
   _db = await MongoClient.connect(url)
-  log(`Connected to db ${_db.s.databaseName}`)
+  log(`event=connected msg='Database: ${_db.s.databaseName}'`)
 
   return _db
 }
@@ -30,7 +30,7 @@ async function query (asyncFunc, args) {
 
 function close () {
   if (_db) {
-    log(`Closing connection to ${_db.s.databaseName}`)
+    log(`event=closing msg='Database: ${_db.s.databaseName}'`)
     _db.close()
   }
 }

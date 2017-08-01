@@ -1,9 +1,10 @@
 {
   "name": "microman",
-  "version": "1.0.4",
+  "version": "1.0.8",
   "author": "Anri Digholm",
   "license": "MIT",
   "keywords": "microservice back-end WebSocket API framework server cluster socket rabbitmq scale scalable queue worker",
+  "main": "src/index.js",
   "repository": "https://github.com/anrid/microman",
   "dependencies": {
     "amqplib": "^0.5.1",
@@ -29,6 +30,6 @@
     "worker-dev": "nodemon --watch ./examples examples/api-worker.js",
     "workers": "concurrently './examples/api-worker.js' './examples/api-worker.js'",
     "servers": "concurrently './examples/api-server.js 11100' './examples/api-server.js 11200'",
-    "clients": "concurrently './examples/api-client.js api-dev.taskworld.com 11100 10' './examples/api-client.js api-dev.taskworld.com 11200 10'"
+    "clients": "concurrently './examples/loadtest-client.js api-dev.taskworld.com 11100 10' './examples/loadtest-client.js api-dev.taskworld.com 11200 10'"
   }
 }

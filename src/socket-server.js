@@ -11,21 +11,22 @@ const log = require('./logger')('socket')
 const Throttle = require('./throttle')
 const Shortid = require('shortid')
 
-function createServer (opts) {
-  const serverId = Shortid.generate()
+const SERVER_ID = `server_` + Shortid.generate()
 
+function createServer (opts) {
   const app = setupExpressApp()
 
-  log(`msg='Loading TLS certificate: ${opts.cert}'`)
+  log(`Loading TLS certificate: ${opts.cert}`)
   const server = Https.createServer({
     cert: Fs.readFileSync(opts.cert),
     key: Fs.readFileSync(opts.certKey)
   }, app)
 
-  setupWebSocketServer(server, serverId)
+  setupWebSocketServer(server)
 
   server.listen(opts.port, opts.host, () => {
-    log(`msg='Server running on ${opts.host}:${opts.port}'`)
+    log(`event=connected host=${opts.host} port=${opts.port}`)
+    log(`Server running on ${opts.host}:${opts.port}`)
   })
 }
 
@@ -48,18 +49,19 @@ function setupExpressApp (port) {
   return app
 }
 
-function setupWebSocketServer (server, serverId) {
+function setupWebSocketServer (server) {
   const wss = new WebSocketServer({ server, path: '/' })
 
   // Handle socket connections.
   wss.on('connection', onConnection)
 
   // Setup RabbitMQ producer and consumer.
-  const reads = Rabbit.getReadsProducer(serverId)
-  Rabbit.getPublishConsumer(serverId, message => {
+  const reads = Rabbit.getReadsProducer(SERVER_ID)
+
+  Rabbit.getPublishConsumer(SERVER_ID, message => {
     // Broadcast once we receive a published message.
     if (!isValidPublishMessage(message)) {
-      log(`error='Got invalid publish message: ${JSON.stringify(message)}'`)
+      log(`id=${SERVER_ID} event=error msg='Got invalid publish message: ${JSON.stringify(message)}'`)
       return
     }
     const { payload, meta, session } = message
@@ -79,10 +81,10 @@ function setupWebSocketServer (server, serverId) {
       // Upgrade / handshake this socket connetions if we get a session.
       if (session) {
         if (!session.userId || !session.email) {
-          log(`error='Got invalid session data: ${JSON.stringify(session)}'`)
+          log(`id=${SERVER_ID} event=error msg='Got invalid session data: ${JSON.stringify(session)}'`)
         } else {
           // Upgrade this socket connection (i.e. perform a handshake) if a session object is found in reply.
-          log(`ns=${session.email} uid=${session.userId}`)
+          log(`id=${SERVER_ID} event=session email=${session.email} uid=${session.userId}`)
           socket.session = session
         }
       }
@@ -108,7 +110,7 @@ function setupWebSocketServer (server, serverId) {
     socket.on('message', onMessage)
     socket.on('close', () => {
       const sid = socket.session ? socket.session.email : 'public'
-      log(`close=1 socket=${socket.id} sid=${sid}`)
+      log(`id=${SERVER_ID} event=disconnect socket=${socket.id} sid=${sid}`)
     })
 
     async function onMessage (json) {
@@ -137,14 +139,14 @@ function setupWebSocketServer (server, serverId) {
         // Ack message at this point.
         ackMessage(socket, meta)
 
-        log(`recv=1 topic=${message.topic} sid=${meta.sid}`)
+        log(`id=${SERVER_ID} event=recv topic=${message.topic} sid=${meta.sid}`)
 
         // Queue message for processing.
         await reads.produce({ message, meta, session: socket.session })
         // Done.
       } catch (err) {
         log('Error:', err)
-        log(`errorSource='${json}'`)
+        log(`id=${SERVER_ID} event=error source='${json}'`)
         send(socket, 'error', { message: err.message }, meta)
       }
     }
@@ -170,14 +172,14 @@ function isValidPublishMessage ({ topic, payload, meta }) {
 
   if (payload.reply && typeof payload.reply === 'object') {
     if (!payload.reply.topic || !payload.reply.payload) {
-      log(`error='Invalid reply payload: ${JSON.stringify(payload.reply)}'`)
+      log(`id=${SERVER_ID} event=error msg='Invalid reply payload: ${JSON.stringify(payload.reply)}'`)
       payload.reply = null
     }
   }
 
   if (payload.broadcast && Array.isArray(payload.broadcast)) {
     if (!payload.broadcast.every(x => x.topic && x.payload)) {
-      log(`error='Invalid broadcast payload: ${JSON.stringify(payload.broadcast)}''`)
+      log(`id=${SERVER_ID} event=error msg='Invalid broadcast payload: ${JSON.stringify(payload.broadcast)}''`)
       payload.broadcast = null
     }
   }
@@ -207,7 +209,8 @@ function broadcast (wss, messages, meta) {
       })
     }
   })
-  log(`broadcast=1 count=${broadcasts} ms=${Date.now() - timer}`)
+
+  log(`id=${SERVER_ID} event=broadcast count=${broadcasts} ms=${Date.now() - timer}`)
 }
 
 function send (socket, topic, payload, meta) {
@@ -215,8 +218,9 @@ function send (socket, topic, payload, meta) {
     // Total time (ms) spend handling message.
     meta.ms = Date.now() - meta.start
   }
+
   const message = JSON.stringify({ topic, payload, meta })
-  log(`send=1 topic=${topic} ms=${meta.ms} from=${meta.from || ''} size=${message.length} sid=${meta.sid}`)
+  log(`id=${SERVER_ID} event=send topic=${topic} ms=${meta.ms} from=${meta.from || ''} size=${message.length} sid=${meta.sid}`)
   socket.send(message)
 }
 

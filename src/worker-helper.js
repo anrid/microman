@@ -5,10 +5,10 @@ const Rabbit = require('./rabbit')
 const log = require('./logger')('worker')
 
 async function getReplyFunctions (workerId) {
-  // Fetch the publisher.
+  // Fetch the publish producer.
   const publisher = await Rabbit.getPublishProducer(workerId)
 
-  // Create reply functions.
+  // Reply to one socket.
   const reply = (topic, payload, meta, session) => (
     publisher.produce({
       topic: 'publish',
@@ -18,6 +18,7 @@ async function getReplyFunctions (workerId) {
     })
   )
 
+  // Broadcast to multiple sockets.
   const broadcast = (target, topic, payload, meta) => (
     publisher.produce({
       topic: 'publish',
@@ -33,14 +34,14 @@ async function getReplyFunctions (workerId) {
 }
 
 async function createReadsWorker (topicToHandlerMap) {
-  const workerId = Shortid.generate()
+  const workerId = 'worker_' + Shortid.generate()
   const { reply, broadcast } = await getReplyFunctions(workerId)
 
   // Create message handler
   async function onMessage ({ message, meta, session }) {
     try {
       // Lookup handler and execute.
-      log(`id=${workerId} topic=${message.topic} sid=${meta.sid}`)
+      log(`id=${workerId} event=message topic=${message.topic} sid=${meta.sid}`)
 
       const item = topicToHandlerMap[message.topic]
       if (!item) throw new Error(`unsupported topic '${message.topic}'`)
@@ -55,8 +56,7 @@ async function createReadsWorker (topicToHandlerMap) {
       await item.handler({ message, meta, reply, broadcast, session })
     } catch (err) {
       // Handle errors.
-      log(`id=${workerId} error='${err.message}'`)
-
+      log(`id=${workerId} event=error msg='${err.message}'`)
       const shortStack = err.stack.split(`\n`).slice(1, 4).join(`\n`).trim()
       log('Stacktrace:', shortStack)
 
