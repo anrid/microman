@@ -1,5 +1,6 @@
 {
   "name": "microman",
+  "description": "A back-end WebSocket API framework using a microservice architecture.",
   "version": "1.0.8",
   "author": "Anri Digholm",
   "license": "MIT",
@@ -30,6 +31,6 @@
     "worker-dev": "nodemon --watch ./examples examples/api-worker.js",
     "workers": "concurrently './examples/api-worker.js' './examples/api-worker.js'",
     "servers": "concurrently './examples/api-server.js 11100' './examples/api-server.js 11200'",
-    "clients": "concurrently './examples/loadtest-client.js api-dev.taskworld.com 11100 10' './examples/loadtest-client.js api-dev.taskworld.com 11200 10'"
+    "clients": "concurrently './examples/loadtest-client.js --host api-dev.taskworld.com --port 11100 --clients 50 --iterations 100' './examples/loadtest-client.js --host api-dev.taskworld.com --port 11200 --clients 50 --iterations 100'"
   }
 }
