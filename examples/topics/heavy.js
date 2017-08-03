@@ -7,7 +7,7 @@ const schema = Joi.object().keys({
   password: Joi.string().trim().min(8).max(128).required()
 })
 
-async function heavy ({ message, meta, reply }) {
+async function heavy ({ message, reply }) {
   // Heavy duty !
   const data = validate(message.payload, schema)
   const salt = Crypto.randomBytes(10).toString('hex')
@@ -21,7 +21,9 @@ async function heavy ({ message, meta, reply }) {
     })
   })
 
-  reply('heavy', { encrypted: encrypted.toString('hex'), salt }, meta)
+  const payload = { encrypted: encrypted.toString('hex'), salt }
+
+  reply({ topic: 'heavy', payload })
 }
 
 module.exports = heavy

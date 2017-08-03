@@ -1,8 +1,8 @@
 'use strict'
 
-async function echo ({ message, meta, reply }) {
+async function echo ({ message, reply }) {
   // Simple echo.
-  reply('echo', message.payload, meta)
+  reply({ topic: 'echo', payload: message.payload })
 }
 
 module.exports = echo

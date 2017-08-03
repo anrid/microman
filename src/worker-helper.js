@@ -4,28 +4,27 @@ const Shortid = require('shortid')
 const Rabbit = require('./rabbit')
 const log = require('./logger')('worker')
 
-async function getReplyFunctions (workerId) {
-  // Fetch the publish producer.
-  const publisher = await Rabbit.getPublishProducer(workerId)
-
+function getReplyFunctions (publisher, meta) {
   // Reply to one socket.
-  const reply = (topic, payload, meta, session) => (
+  const reply = opts => {
+    const { topic, payload, session } = opts
     publisher.produce({
       topic: 'publish',
       payload: { reply: { topic, payload } },
-      meta,
+      meta: opts.meta ? Object.assign({ }, meta, opts.meta) : meta,
       session
     })
-  )
+  }
 
   // Broadcast to multiple sockets.
-  const broadcast = (target, topic, payload, meta) => (
+  const broadcast = opts => {
+    const { target, topic, payload } = opts
     publisher.produce({
       topic: 'publish',
       payload: { broadcast: [{ target, topic, payload }] },
-      meta
+      meta: opts.meta ? Object.assign({ }, meta, opts.meta) : meta
     })
-  )
+  }
 
   return {
     reply,
@@ -35,10 +34,15 @@ async function getReplyFunctions (workerId) {
 
 async function createReadsWorker (topicToHandlerMap) {
   const workerId = 'worker_' + Shortid.generate()
-  const { reply, broadcast } = await getReplyFunctions(workerId)
 
-  // Create message handler
+  // Fetch the publish producer.
+  const publisher = await Rabbit.getPublishProducer(workerId)
+
+  // Create message handler.
   async function onMessage ({ message, meta, session }) {
+    // Create reply functions.
+    const { reply, broadcast } = getReplyFunctions(publisher, meta)
+
     try {
       // Lookup handler and execute.
       log(`id=${workerId} event=message topic=${message.topic} sid=${meta.sid}`)
@@ -52,6 +56,7 @@ async function createReadsWorker (topicToHandlerMap) {
           throw new Error(`topic '${message.topic}' requires a user session'`)
         }
       }
+
       // Call the handler.
       await item.handler({ message, meta, reply, broadcast, session })
     } catch (err) {
@@ -60,7 +65,7 @@ async function createReadsWorker (topicToHandlerMap) {
       const shortStack = err.stack.split(`\n`).slice(1, 4).join(`\n`).trim()
       log('Stacktrace:', shortStack)
 
-      reply('error', { message: err.message }, meta)
+      reply({ topic: 'error', payload: { message: err.message } })
 
       // NOTE: You can rethrow the exception here to have RabbitMQ requeue
       // the message and let another worker have a go at it !

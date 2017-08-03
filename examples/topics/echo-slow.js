@@ -1,9 +1,9 @@
 'use strict'
 
-async function echoSlow ({ message, meta, reply }) {
+async function echoSlow ({ message, reply }) {
   // Echo with a delay.
   setTimeout(() => {
-    reply('echo', message.payload, meta)
+    reply({ topic: 'echo', payload: message.payload })
   }, 4000)
 }
 

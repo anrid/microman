@@ -10,7 +10,7 @@ const schema = Joi.object().keys({
 })
 
 // Sign up a new user and create a session.
-async function signup ({ message, meta, reply }) {
+async function signup ({ message, reply }) {
   const data = validate(message.payload, schema)
 
   const user = {
@@ -25,7 +25,7 @@ async function signup ({ message, meta, reply }) {
 
   const accessToken = Auth.createToken(session)
 
-  reply('signup', { user, accessToken }, meta, session)
+  reply({ topic: 'signup', payload: { user, accessToken }, session })
 }
 
 module.exports = signup

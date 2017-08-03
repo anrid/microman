@@ -7,14 +7,14 @@ const schema = Joi.object().keys({
 })
 
 // Create a new todo item.
-async function todoCreate ({ message, meta, session, broadcast }) {
+async function todoCreate ({ message, session, broadcast }) {
   const todo = validate(message.payload, schema)
   todo.userId = session.userId
   todo.created = new Date()
   // TODO: Save todo to database !
 
   // Broadcast to all sockets with the same user id as the current session.
-  broadcast(session.userId, 'todo:create', { todo }, meta)
+  broadcast({ target: session.userId, topic: 'todo:create', payload: { todo } })
 }
 
 module.exports = todoCreate
