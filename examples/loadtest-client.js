@@ -27,7 +27,7 @@ const args = require('minimist')(process.argv.slice(2))
 Assert(args.host, 'Missing --host arg.')
 Assert(args.port, 'Missing --port arg.')
 args.clients = args.clients || 1
-args.topic = args.topic || 'echo'
+args.topic = args.topic || 'echo.get'
 args.iterations = args.iterations || true
 args.delay = args.delay || 100
 

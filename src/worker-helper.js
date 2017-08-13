@@ -8,7 +8,7 @@ function getReplyFunctions (publisher, meta) {
   // Reply to one socket.
   const reply = opts => {
     const { topic, payload, session } = opts
-    publisher.produce({
+    publisher.produce('', {
       topic: 'publish',
       payload: { reply: { topic, payload } },
       meta: opts.meta ? Object.assign({ }, meta, opts.meta) : meta,
@@ -19,7 +19,7 @@ function getReplyFunctions (publisher, meta) {
   // Broadcast to multiple sockets.
   const broadcast = opts => {
     const { target, topic, payload } = opts
-    publisher.produce({
+    publisher.produce('', {
       topic: 'publish',
       payload: { broadcast: [{ target, topic, payload }] },
       meta: opts.meta ? Object.assign({ }, meta, opts.meta) : meta
@@ -32,7 +32,7 @@ function getReplyFunctions (publisher, meta) {
   }
 }
 
-async function createReadsWorker (topicToHandlerMap) {
+async function createWorker ({ bindings, topics }) {
   const workerId = 'worker_' + Shortid.generate()
 
   // Fetch the publish producer.
@@ -47,18 +47,18 @@ async function createReadsWorker (topicToHandlerMap) {
       // Lookup handler and execute.
       log(`id=${workerId} event=message topic=${message.topic} sid=${meta.sid}`)
 
-      const item = topicToHandlerMap[message.topic]
-      if (!item) throw new Error(`unsupported topic '${message.topic}'`)
+      const topic = topics[message.topic]
+      if (!topic) throw new Error(`unsupported topic "${message.topic}"`)
 
       // Check if a session is required.
-      if (item.requireSession !== false) {
+      if (topic.requireSession !== false) {
         if (!session || !session.userId || !session.email) {
           throw new Error(`topic '${message.topic}' requires a user session'`)
         }
       }
 
       // Call the handler.
-      await item.handler({ message, meta, reply, broadcast, session })
+      await topic.handler({ message, meta, reply, broadcast, session })
     } catch (err) {
       // Handle errors.
       log(`id=${workerId} event=error msg='${err.message}'`)
@@ -73,12 +73,12 @@ async function createReadsWorker (topicToHandlerMap) {
     }
   }
 
-  // Start consuming messages off of the reads queue.
-  const consumer = Rabbit.getReadsConsumer(workerId, onMessage)
+  // Start consuming messages off of the work exchange.
+  const consumer = Rabbit.getWorkExchangeConsumer(workerId, bindings, onMessage)
   return consumer
 }
 
 module.exports = {
   getReplyFunctions,
-  createReadsWorker
+  createWorker
 }

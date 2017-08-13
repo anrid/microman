@@ -56,7 +56,7 @@ function setupWebSocketServer (server) {
   wss.on('connection', onConnection)
 
   // Setup RabbitMQ producer and consumer.
-  const reads = Rabbit.getReadsProducer(SERVER_ID)
+  const workExchange = Rabbit.getWorkExchangeProducer(SERVER_ID)
 
   Rabbit.getPublishConsumer(SERVER_ID, message => {
     // Broadcast once we receive a published message.
@@ -114,11 +114,14 @@ function setupWebSocketServer (server) {
     })
 
     async function onMessage (json) {
+      const sid = socket.session ? socket.session.email : 'public_' + Shortid.generate()
+
       const meta = {
-        start: Date.now(), // Start timer when we receive a message.
+        // Start timer when we receive a message.
+        start: Date.now(),
         ms: 0,
-        sid: socket.session ? socket.session.email : 'public',
-        from: 'server'
+        from: 'server',
+        sid
       }
 
       try {
@@ -128,7 +131,7 @@ function setupWebSocketServer (server) {
         if (!message.topic) throw new Error('Message missing topic')
         if (!message.payload) throw new Error('Message missing payload')
 
-        meta.requestId = message.meta ? message.meta.requestId : null
+        meta.requestId = message.meta ? message.meta.requestId : sid
         meta.socketId = socket.id
         meta.from = message.topic
 
@@ -142,8 +145,10 @@ function setupWebSocketServer (server) {
         log(`id=${SERVER_ID} event=recv topic=${message.topic} sid=${meta.sid}`)
 
         // Queue message for processing.
-        await reads.produce({ message, meta, session: socket.session })
-        // Done.
+        const bindingKey = message.topic.split(':').join('.')
+        await workExchange.produce(bindingKey, { message, meta, session: socket.session })
+
+        // And we’re done.
       } catch (err) {
         log('Error:', err)
         log(`id=${SERVER_ID} event=error source='${json}'`)

@@ -3,7 +3,7 @@
 async function echoSlow ({ message, reply }) {
   // Echo with a delay.
   setTimeout(() => {
-    reply({ topic: 'echo', payload: message.payload })
+    reply({ topic: 'echo.slow', payload: message.payload })
   }, 4000)
 }
 

@@ -52,7 +52,7 @@ $ yarn servers
 ```bash
 $ yarn workers
 # This runs:
-# $ concurrently './examples/api-worker.js' './examples/api-worker.js'
+# $ concurrently './examples/api-echo-worker.js' './examples/api-misc-worker.js'
 ```
 
 6. Run the API client to test everything:

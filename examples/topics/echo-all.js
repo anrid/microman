@@ -5,7 +5,7 @@ async function echoAll ({ message, broadcast }) {
   // FIXME: Remove this later !
   broadcast({
     target: 'ALL',
-    topic: 'echo:all',
+    topic: 'echo.all',
     payload: message.payload
   })
 }

@@ -16,9 +16,9 @@ async function run (opts) {
 
   // Send an 'echo' and expect an 'echo' reply.
   const resp1 = await client.send({
-    topic: 'echo',
+    topic: 'echo.get',
     payload: { value: 'ABC' },
-    waitFor: 'echo'
+    waitFor: 'echo.get'
   })
   Assert(resp1.payload.value === 'ABC', `Should contain payload.value === 'ABC'`)
 
@@ -60,12 +60,12 @@ async function run (opts) {
   Assert(resp5.payload.todo.title === 'My Todo!', `Should get a todo object`)
   Assert(resp5.payload.todo.userId === resp4.payload.user._id, `Should be owned by the user holding the current session`)
 
-  // Send an 'echo:slow' and expect timeout to hit.
+  // Send an 'echo.slow' and expect timeout to hit.
   try {
     await client.send({
-      topic: 'echo:slow',
+      topic: 'echo.slow',
       payload: { value: 'ABC' },
-      waitFor: 'echo'
+      waitFor: 'echo.slow'
     })
     Assert.fail(`Should throw before reaching this point`)
   } catch (err) {
