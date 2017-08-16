@@ -32,7 +32,7 @@ function getReplyFunctions (publisher, meta) {
   }
 }
 
-async function createWorker ({ bindings, topics }) {
+async function createWorker ({ group, bindings, topics }) {
   const workerId = 'worker_' + Shortid.generate()
 
   // Fetch the publish producer.
@@ -74,7 +74,12 @@ async function createWorker ({ bindings, topics }) {
   }
 
   // Start consuming messages off of the work exchange.
-  const consumer = Rabbit.getWorkExchangeConsumer(workerId, bindings, onMessage)
+  const consumer = Rabbit.getWorkExchangeConsumer({
+    id: workerId,
+    group,
+    bindings,
+    onMessage
+  })
   return consumer
 }
 

@@ -91,24 +91,24 @@ function createProducer ({ id, exchange, type, queue, options }) {
 }
 
 function createExchangeConsumer (opts) {
-  const { id, exchange, type, options, onMessage } = opts
+  const { id, group, exchange, type, options, onMessage } = opts
   const t = { id }
 
   connect(t, async conn => {
     t.ch = await conn.createChannel()
 
     await t.ch.assertExchange(exchange, type, options)
-    const q = await t.ch.assertQueue('', options)
+    const q = await t.ch.assertQueue(group || '', options)
 
     let bindings = 'none'
-    if (type === 'topic' && Array.isArray(opts.bindingKeys)) {
+    if (type === 'topic' && Array.isArray(opts.bindings)) {
       // If this is a topic exchange, bind our anonymous queue to
       // one or more topics (binding keys).
-      // E.g. opts.bindingKeys = ['task.*', 'project.get', 'signup']
-      for (const key of opts.bindingKeys) {
+      // E.g. opts.bindings = ['task.*', 'project.get', 'signup']
+      for (const key of opts.bindings) {
         await t.ch.bindQueue(q.queue, exchange, key)
       }
-      bindings = opts.bindingKeys.join(', ')
+      bindings = opts.bindings.join(', ')
     } else {
       await t.ch.bindQueue(q.queue, exchange, '')
     }
@@ -224,14 +224,15 @@ function getWorkExchangeProducer (id) {
   })
 }
 
-function getWorkExchangeConsumer (id, bindingKeys, onMessage) {
+function getWorkExchangeConsumer ({ id, group, bindings, onMessage }) {
   return createExchangeConsumer({
     id,
+    group,
     exchange: WORK_EXCHANGE,
     type: 'topic',
     options: { durable: true, messageTtl: MESSAGE_TTL },
     prefetch: 4,
-    bindingKeys,
+    bindings,
     onMessage
   })
 }

@@ -5,6 +5,7 @@ require('dotenv').config()
 const { WorkerHelper } = require('../src')
 
 WorkerHelper.createWorker({
+  group: 'misc-group',
   bindings: [
     'heavy',
     'signup',

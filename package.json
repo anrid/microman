@@ -29,7 +29,7 @@
   },
   "scripts": {
     "worker-dev": "nodemon --watch ./examples examples/api-worker.js",
-    "workers": "concurrently './examples/api-echo-worker.js' './examples/api-misc-worker.js'",
+    "workers": "concurrently './examples/api-echo-worker.js' './examples/api-echo-worker.js' './examples/api-misc-worker.js' './examples/api-misc-worker.js'",
     "servers": "concurrently './examples/api-server.js 11100' './examples/api-server.js 11200'",
     "clients": "concurrently './examples/loadtest-client.js --host api-dev.taskworld.com --port 11100 --clients 50 --iterations 100' './examples/loadtest-client.js --host api-dev.taskworld.com --port 11200 --clients 50 --iterations 100'"
   }

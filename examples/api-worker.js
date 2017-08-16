@@ -5,6 +5,7 @@ require('dotenv').config()
 const { WorkerHelper } = require('../src')
 
 WorkerHelper.createWorker({
+  group: 'all-the-things-group',
   bindings: [
     'echo.*',
     'heavy',

@@ -5,6 +5,7 @@ require('dotenv').config()
 const { WorkerHelper } = require('../src')
 
 WorkerHelper.createWorker({
+  group: 'echo-group',
   bindings: [
     'echo.*'
   ],
